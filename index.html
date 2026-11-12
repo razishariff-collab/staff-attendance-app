@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Staff Biometric Attendance</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #0d9488;
+      --primary-hover: #0f766e;
+      --danger: #e11d48;
+      --danger-hover: #be123c;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .clock {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #2dd4bf;
+      margin: 8px 0 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .date-display {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .gps-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      margin-bottom: 20px;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--warning);
+    }
+    .dot.ok { background: #10b981; }
+    .dot.err { background: var(--danger); }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    select {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+      outline: none;
+    }
+
+    .fingerprint-box {
+      text-align: center;
+      padding: 18px;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      margin-bottom: 20px;
+      background: rgba(15, 23, 42, 0.35);
+    }
+
+    .fp-icon {
+      font-size: 2.5rem;
+      margin-bottom: 6px;
+    }
+
+    .fp-status {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 16px 12px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s ease, opacity 0.2s;
+      color: white;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-in {
+      background: var(--primary);
+    }
+    .btn-in:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .btn-out {
+      background: var(--danger);
+    }
+    .btn-out:hover:not(:disabled) {
+      background: var(--danger-hover);
+    }
+
+    .btn-register {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 12px;
+    }
+    .btn-register:hover {
+      border-color: #64748b;
+      color: var(--text);
+    }
+
+    .message-box {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      text-align: center;
+      display: none;
+    }
+    .message-box.success {
+      display: block;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #6ee7b7;
+    }
+    .message-box.error {
+      display: block;
+      background: rgba(225, 29, 72, 0.15);
+      border: 1px solid #e11d48;
+      color: #fda4af;
+    }
+    .message-box.info {
+      display: block;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid #38bdf8;
+      color: #7dd3fc;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>Staff Attendance</h1>
+      <div class="clock" id="liveClock">--:--:--</div>
+      <div class="date-display" id="liveDate">Loading date...</div>
+    </div>
+
+    <div class="gps-badge">
+      <span class="dot" id="gpsDot"></span>
+      <span id="gpsText">Checking on-site GPS location...</span>
+    </div>
+
+    <label for="staffSelect">Select Staff Member</label>
+    <select id="staffSelect">
+      <option value="">-- Choose Your Name --</option>
+      <option value="Razi">Razi</option>
+      <option value="Pradeep">Pradeep</option>
+      <option value="Jagan">Jagan</option>
+      <option value="Logash">Logash</option>
+      <option value="Madushan">Madushan</option>
+      <option value="Aluwihare">Aluwihare</option>
+      <option value="Buddika">Buddika</option>
+    </select>
+
+    <div class="fingerprint-box">
+      <div class="fp-icon">☝️</div>
+      <div class="fp-status" id="fpStatusText">
+        Select your name to check fingerprint registration
+      </div>
+    </div>
+
+    <div class="btn-grid">
+      <button class="btn-in" id="btnCheckIn" disabled onclick="handleAttendance('CHECK IN')">
+        CHECK IN
+      </button>
+      <button class="btn-out" id="btnCheckOut" disabled onclick="handleAttendance('CHECK OUT')">
+        CHECK OUT
+      </button>
+    </div>
+
+    <button class="btn-register" id="btnRegister" onclick="registerFingerprint()">
+      Register / Reset Phone Fingerprint
+    </button>
+
+    <div class="message-box" id="msgBox"></div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. CONFIGURATION
+    // ==========================================
+    const CONFIG = {
+      GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyYY3-D4YNgGmDUp6xo-b03uIoal7XvpIWNbWYGsT4gEV7rHpkW9gR_iiHBG20gbldBtA/exec",
+      SITE_LAT: 7.2906,          // Update with your exact property Latitude
+      SITE_LNG: 80.6337,         // Update with your exact property Longitude
+      MAX_RADIUS_METERS: 100,    // Allowed distance from property in meters
+      ENFORCE_GPS: false         // Temporarily disabled for testing
+    };
+
+    // ==========================================
+    // 2. CLOCK & GPS GEOFENCING
+    // ==========================================
+    let currentCoords = null;
+    let currentDistance = null;
+    let isWithinGeofence = !CONFIG.ENFORCE_GPS;
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-US', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      document.getElementById('liveDate').textContent = now.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
+      });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function getDistanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const p1 = lat1 * Math.PI / 180;
+      const p2 = lat2 * Math.PI / 180;
+      const dp = (lat2 - lat1) * Math.PI / 180;
+      const dl = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dp/2) * Math.sin(dp/2) +
+                Math.cos(p1) * Math.cos(p2) *
+                Math.sin(dl/2) * Math.sin(dl/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return Math.round(R * c);
+    }
+
+    function initGPS() {
+      const gpsText = document.getElementById('gpsText');
+      const gpsDot = document.getElementById('gpsDot');
+
+      if (!CONFIG.ENFORCE_GPS) {
+        isWithinGeofence = true;
+        gpsDot.className = 'dot ok';
+        gpsText.textContent = 'GPS Check Bypassed (Test Mode)';
+        refreshUIState();
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        gpsDot.className = 'dot err';
+        gpsText.textContent = 'GPS not supported on this browser.';
+        return;
+      }
+
+      navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          currentCoords = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+          currentDistance = getDistanceMeters(lat, lng, CONFIG.SITE_LAT, CONFIG.SITE_LNG);
+
+          if (!CONFIG.ENFORCE_GPS || currentDistance <= CONFIG.MAX_RADIUS_METERS) {
+            isWithinGeofence = true;
+            gpsDot.className = 'dot ok';
+            gpsText.textContent = `On-Site Verified (${currentDistance}m from property)`;
+          } else {
+            isWithinGeofence = false;
+            gpsDot.className = 'dot err';
+            gpsText.textContent = `Off-Site (${currentDistance}m away — must be within ${CONFIG.MAX_RADIUS_METERS}m)`;
+          }
+          refreshUIState();
+        },
+        (err) => {
+          gpsDot.className = 'dot err';
+          gpsText.textContent = 'Location permission required to clock in/out.';
+          isWithinGeofence = !CONFIG.ENFORCE_GPS;
+          refreshUIState();
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+      );
+    }
+    initGPS();
+
+    // ==========================================
+    // 3. WEBAUTHN PHONE FINGERPRINT LOGIC
+    // ==========================================
+    const staffSelect = document.getElementById('staffSelect');
+    const fpStatusText = document.getElementById('fpStatusText');
+    const btnCheckIn = document.getElementById('btnCheckIn');
+    const btnCheckOut = document.getElementById('btnCheckOut');
+
+    const savedStaff = localStorage.getItem('last_selected_staff');
+    if (savedStaff) {
+      staffSelect.value = savedStaff;
+    }
+
+    staffSelect.addEventListener('change', () => {
+      localStorage.setItem('last_selected_staff', staffSelect.value);
+      hideMessage();
+      refreshUIState();
+    });
+
+    function getStoredCredentialId(staffName) {
+      return localStorage.getItem(`webauthn_cred_${staffName}`);
+    }
+
+    function refreshUIState() {
+      const staff = staffSelect.value;
+      if (!staff) {
+        fpStatusText.textContent = "Select your name above to begin.";
+        btnCheckIn.disabled = true;
+        btnCheckOut.disabled = true;
+        return;
+      }
+
+      const credId = getStoredCredentialId(staff);
+      if (!credId) {
+        fpStatusText.innerHTML = `<strong>${staff}</strong> is not registered on this phone yet.<br>Tap <em>"Register / Reset Phone Fingerprint"</em> below.`;
+        btnCheckIn.disabled = true;
+        btnCheckOut.disabled = true;
+      } else {
+        fpStatusText.innerHTML = `✅ Fingerprint linked for <strong>${staff}</strong>.<br>Ready to scan.`;
+        btnCheckIn.disabled = !isWithinGeofence;
+        btnCheckOut.disabled = !isWithinGeofence;
+      }
+    }
+    refreshUIState();
+
+    function bufferToBase64url(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let str = '';
+      for (const charCode of bytes) str += String.fromCharCode(charCode);
+      return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    function base64urlToBuffer(base64url) {
+      const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+      const padLen = (4 - (base64.length % 4)) % 4;
+      const padded = base64.padEnd(base64.length + padLen, '=');
+      const binary = atob(padded);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    async function registerFingerprint() {
+      const staff = staffSelect.value;
+      if (!staff) {
+        showMessage('Please select your name from the dropdown first.', 'error');
+        return;
+      }
+
+      if (!window.PublicKeyCredential) {
+        showMessage('Biometric WebAuthn is not supported on this browser or non-HTTPS page.', 'error');
+        return;
+      }
+
+      try {
+        showMessage('Touch your phone fingerprint sensor to register...', 'info');
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+
+        const userId = new TextEncoder().encode(staff);
+
+        const credential = await navigator.credentials.create({
+          publicKey: {
+            challenge: challenge,
+            rp: { name: "Staff Attendance System" },
+            user: {
+              id: userId,
+              name: staff.toLowerCase(),
+              displayName: staff
+            },
+            pubKeyCredParams: [
+              { type: "public-key", alg: -7 },
+              { type: "public-key", alg: -257 }
+            ],
+            authenticatorSelection: {
+              authenticatorAttachment: "platform",
+              userVerification: "required"
+            },
+            timeout: 60000
+          }
+        });
+
+        const credIdBase64 = bufferToBase64url(credential.rawId);
+        localStorage.setItem(`webauthn_cred_${staff}`, credIdBase64);
+        showMessage(`Fingerprint registered for ${staff}! You can now Check In/Out.`, 'success');
+        refreshUIState();
+
+      } catch (err) {
+        console.error(err);
+        showMessage(`Registration cancelled or failed: ${err.message}`, 'error');
+      }
+    }
+
+    async function verifyFingerprint(staff) {
+      const storedCredId = getStoredCredentialId(staff);
+      if (!storedCredId) throw new Error("No fingerprint registered for this user.");
+
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: challenge,
+          allowCredentials: [{
+            id: base64urlToBuffer(storedCredId),
+            type: "public-key",
+            transports: ["internal"]
+          }],
+          userVerification: "required",
+          timeout: 60000
+        }
+      });
+
+      return !!assertion;
+    }
+
+    // ==========================================
+    // 4. ATTENDANCE SUBMISSION TO GOOGLE SHEETS
+    // ==========================================
+    async function handleAttendance(action) {
+      const staff = staffSelect.value;
+      if (!staff) return;
+
+      if (CONFIG.ENFORCE_GPS && !isWithinGeofence) {
+        showMessage(`You must be within ${CONFIG.MAX_RADIUS_METERS}m of the property to punch.`, 'error');
+        return;
+      }
+
+      try {
+        btnCheckIn.disabled = true;
+        btnCheckOut.disabled = true;
+        showMessage('Scan your fingerprint to confirm...', 'info');
+
+        const verified = await verifyFingerprint(staff);
+        if (!verified) throw new Error("Fingerprint verification failed.");
+
+        showMessage('Verified! Saving record to Google Sheets...', 'info');
+
+        const payload = {
+          staffName: staff,
+          action: action,
+          distance: currentDistance ?? 0,
+          coords: currentCoords ?? 'GPS Bypassed (Test Mode)',
+          method: 'Phone Fingerprint (WebAuthn)'
+        };
+
+        const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.status === 'success') {
+          showMessage(`✅ ${result.message}`, 'success');
+        } else {
+          throw new Error(result.message || 'Server error');
+        }
+
+      } catch (err) {
+        console.error(err);
+        showMessage(`❌ ${err.message}`, 'error');
+      } finally {
+        refreshUIState();
+      }
+    }
+
+    function showMessage(text, type) {
+      const box = document.getElementById('msgBox');
+      box.textContent = text;
+      box.className = `message-box ${type}`;
+    }
+
+    function hideMessage() {
+      const box = document.getElementById('msgBox');
+      box.className = 'message-box';
+    }
+  </script>
+</body>
+</html>
